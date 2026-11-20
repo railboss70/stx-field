@@ -1,4 +1,4 @@
-const CACHE = "stx-field-daily-v1";
+const CACHE = "stx-field-daily-v2";
 const ASSETS = [
   "./",
   "./index.html",

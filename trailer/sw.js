@@ -1,6 +1,6 @@
 // Offline support: caches the app so it opens with no cell signal.
 // Bump VERSION whenever you change any file so phones pick up the update.
-const VERSION = "stx-field-trailer-v1";
+const VERSION = "stx-field-trailer-v2";
 const FILES = [
   "./", "index.html", "css/style.css",
   "js/items.js", "js/signature.js", "js/pdf.js", "js/app.js", "js/home-button.js",

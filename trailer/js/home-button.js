@@ -1,37 +1,58 @@
-// STX Field "Home" tab, shown on the left edge of every app inside STX Field.
-// First tap opens "Back to STX Home"; a second tap goes home, so a stray thumb does nothing.
+// STX Field "Home" button: a house icon in each app's top bar that goes back to the STX Field home screen.
+// Tool Trailer and Visa: placed just left of the Settings (gear) button, styled like it.
+// Daily Report: a round button in the top-right corner of the navy header.
+// The app redraws its header between screens, so the button is put back whenever it goes missing.
 // The same file is copied into trailer/js/, daily/ and source/visa/public/. Keep the copies identical.
 (function () {
   var HOME = "../";
-  function add() {
-    if (document.getElementById("stx-home-tab")) return;
-    var css = document.createElement("style");
-    css.textContent =
-      "#stx-home-tab{position:fixed;left:0;top:58%;z-index:2147483000;display:flex;align-items:center;" +
-      "gap:6px;height:44px;padding:0 10px 0 8px;border:0;border-radius:0 22px 22px 0;background:rgba(12,35,64,.88);" +
-      "color:#fff;font:600 14px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" +
-      "box-shadow:0 4px 14px rgba(0,0,0,.25);text-decoration:none;-webkit-tap-highlight-color:transparent;" +
-      "transition:padding .15s;cursor:pointer}" +
-      "#stx-home-tab svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}" +
-      "#stx-home-tab span{display:none;white-space:nowrap}" +
-      "#stx-home-tab.open{padding:0 16px 0 12px;background:#0C2340}#stx-home-tab.open span{display:inline}" +
-      "@media print{#stx-home-tab{display:none}}";
-    document.head.appendChild(css);
-    var b = document.createElement("a");
-    b.id = "stx-home-tab";
-    b.href = HOME;
-    b.setAttribute("aria-label", "Back to STX Home");
-    b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span>Back to STX Home</span>';
-    var timer;
-    b.addEventListener("click", function (e) {
-      if (!b.classList.contains("open")) {
-        e.preventDefault();
-        b.classList.add("open");
-        clearTimeout(timer);
-        timer = setTimeout(function () { b.classList.remove("open"); }, 3500);
-      }
-    });
-    document.body.appendChild(b);
+  var ID = "stx-home-btn";
+  var ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/>' +
+    '<path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>';
+
+  function css() {
+    if (document.getElementById(ID + "-css")) return;
+    var s = document.createElement("style");
+    s.id = ID + "-css";
+    s.textContent =
+      "#" + ID + "{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;" +
+      "-webkit-tap-highlight-color:transparent}" +
+      "#" + ID + ".stx-corner{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:12px;width:42px;height:42px;" +
+      "border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);color:#fff;z-index:5}" +
+      "#" + ID + ".stx-corner:active{background:rgba(255,255,255,.25)}" +
+      "@media print{#" + ID + "{display:none}}";
+    document.head.appendChild(s);
   }
-  if (document.body) add(); else document.addEventListener("DOMContentLoaded", add);
+
+  function make(className) {
+    var a = document.createElement("a");
+    a.id = ID;
+    a.href = HOME;
+    a.className = className || "";
+    a.setAttribute("aria-label", "STX Home");
+    a.title = "STX Home";
+    a.innerHTML = ICON;
+    return a;
+  }
+
+  function place() {
+    if (document.getElementById(ID)) return;
+    var header = document.querySelector("header");
+    if (!header) return;
+    var gear = header.querySelector('[aria-label="Settings"]');
+    if (gear) {
+      // Same look as the gear next to it
+      gear.parentNode.insertBefore(make(gear.className), gear);
+    } else {
+      if (getComputedStyle(header).position === "static") header.style.position = "relative";
+      header.appendChild(make("stx-corner"));
+    }
+  }
+
+  function start() {
+    css();
+    place();
+    new MutationObserver(place).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
 })();

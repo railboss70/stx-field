@@ -16,7 +16,7 @@ The home screen also shows:
 - **Help:** Call or Text Matthew Pitsenbarger (470-755-4860).
 - **Version** at the bottom, and a green **"new version is ready → Update"** bar when you push a change.
 
-Inside each app, a **Home tab** sits on the left edge. Tap once to open "Back to STX Home", tap again to go home.
+Inside each app, a **house button** in the top bar goes back to the STX Field home screen (next to the gear in Tool Trailer and Visa, top-right corner in Daily Report).
 
 ## Put it on a phone
 - **iPhone:** open the link in **Safari** → **Share** → **Add to Home Screen** → name it **STX Field**.
@@ -41,7 +41,7 @@ data, give the STX Field copy new storage names first.
 | Icon | `assets/icon-1024.png` is the master; the other sizes are made from it | bump versions as above |
 
 Keep `home-button.js` (in `trailer/js/`, `daily/`, `source/visa/public/`) and the line that loads it in each
-app's `index.html`. If the Home tab disappears after a change, that line is what went missing.
+app's `index.html`. If the house button disappears after a change, that line is what went missing.
 
 ### Building Visa
 ```bash
