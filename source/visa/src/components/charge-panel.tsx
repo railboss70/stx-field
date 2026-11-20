@@ -1,0 +1,292 @@
+import { useMemo, useState, type ReactNode } from "react";
+import { ALL_CODES, EMPTY_CODES, WORK_ORDER_CODES, mergeCostCodes, suggestCodes, woLabel } from "@/lib/cost-codes";
+import { EMPTY_EQUIP, mergeEquipment, normalizeEquipNumber, STX_FLEET, type EquipUnit } from "@/lib/equipment";
+import { useVisaStore } from "@/lib/store";
+import { missingCodingFields, type AppSettings, type Charge, type ChargeKind, type EquipSuffix } from "@/lib/types";
+import { formatMdY, formatMoney } from "@/lib/utils";
+import { CodeList, EquipmentCoder, KindToggle, WorkOrderPicker } from "./code-picker";
+import { ReceiptDrop } from "./receipt-drop";
+import { AmountInput } from "./amount-input";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Badge } from "./ui/badge";
+
+export function ChargePanel({
+  charge,
+  settings,
+  busyRead,
+  onPatch,
+  onKind,
+  onReadReceipt,
+  onReceiptError,
+}: {
+  charge: Charge;
+  settings: AppSettings;
+  busyRead?: boolean;
+  onPatch: (patch: Partial<Charge>) => void;
+  onKind: (kind: ChargeKind) => void;
+  onReadReceipt?: (receiptId: string) => void;
+  onReceiptError?: (message: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const savedEquip = useVisaStore((s) => s.settings.equipment) ?? EMPTY_EQUIP;
+  const savedCodes = useVisaStore((s) => s.settings.customCostCodes) ?? EMPTY_CODES;
+  const reports = useVisaStore((s) => s.reports);
+  const updateSettings = useVisaStore((s) => s.updateSettings);
+  const fleet = useMemo(() => {
+    const learned: EquipUnit[] = [];
+    for (const r of reports) {
+      for (const c of r.charges) {
+        const n = normalizeEquipNumber(c.equipNumber);
+        if (n) learned.push({ number: n, name: "", keywords: [] });
+      }
+    }
+    return mergeEquipment(STX_FLEET, savedEquip, learned);
+  }, [savedEquip, reports]);
+  const codePool = useMemo(() => mergeCostCodes(ALL_CODES, savedCodes), [savedCodes]);
+  function addCustomCode(code: (typeof savedCodes)[number]) {
+    updateSettings({ customCostCodes: mergeCostCodes(savedCodes, [code]) });
+  }
+  const suggestions = useMemo(
+    () =>
+      suggestCodes({
+        description: charge.description,
+        vendor: charge.vendor,
+        kind: charge.kind === "equipment" ? "equipment" : charge.kind,
+      }),
+    [charge.description, charge.vendor, charge.kind],
+  );
+  const missingCoding = useMemo(() => missingCodingFields(charge), [charge]);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-semibold tracking-tight text-navy">
+            {charge.vendor || "New charge"}
+          </h2>
+          <p className="text-sm text-muted">
+            {charge.transDate ? formatMdY(charge.transDate) : "No date"}
+            {charge.amount ? ` · ${formatMoney(charge.amount)}` : ""}
+            {charge.orderNo ? ` · ${charge.orderNo}` : ""}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {charge.amount < 0 ? <Badge tone="navy">Credit</Badge> : null}
+          {missingCoding.length ? (
+            <Badge tone="warn">Needs {missingCoding.join(" + ")}</Badge>
+          ) : charge.kind === "workOrder" && charge.jobNumber && charge.costCode ? (
+            <Badge tone="ok">
+              {charge.jobNumber} · {charge.costCode}
+            </Badge>
+          ) : charge.kind && charge.costCode ? (
+            <Badge tone="ok">{charge.costCode}</Badge>
+          ) : charge.kind === "equipment" && charge.equipSuffix ? (
+            <Badge tone="ok">
+              {charge.equipNumber}
+              {charge.equipSuffix}
+            </Badge>
+          ) : (
+            <Badge tone="warn">Needs coding</Badge>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="Purchase date">
+          <Input
+            type="date"
+            value={charge.transDate}
+            onChange={(e) => onPatch({ transDate: e.target.value })}
+          />
+        </Field>
+        <Field label="Vendor">
+          <Input
+            value={charge.vendor}
+            placeholder="Dollar General"
+            onChange={(e) => onPatch({ vendor: e.target.value })}
+          />
+        </Field>
+        <Field label="Amount">
+          <div className="flex items-center gap-2">
+            <AmountInput key={charge.id} value={charge.amount} onChange={(n) => onPatch({ amount: n })} />
+            <button
+              type="button"
+              aria-pressed={charge.amount < 0}
+              onClick={() => onPatch({ amount: charge.amount ? -charge.amount : 0 })}
+              className={`h-10 shrink-0 rounded-md border px-3 text-sm font-medium transition-colors ${
+                charge.amount < 0
+                  ? "border-navy bg-navy text-primary-foreground"
+                  : "border-line-strong bg-paper text-muted hover:bg-paper-2"
+              }`}
+            >
+              Credit
+            </button>
+          </div>
+        </Field>
+      </div>
+
+      <Field label="What did you buy?">
+        <Input
+          value={charge.description}
+          placeholder="Water, fuel, PPE, blades…"
+          onChange={(e) => onPatch({ description: e.target.value })}
+        />
+      </Field>
+
+      <div>
+        <Label>How should this post?</Label>
+        <div className="mt-1.5">
+          <KindToggle value={charge.kind} onChange={onKind} />
+        </div>
+      </div>
+
+      {suggestions.length > 0 && charge.kind !== "equipment" && charge.kind !== "workOrder" ? (
+        <div className="flex flex-wrap gap-1.5">
+          {suggestions.map((s) => (
+            <button
+              key={s.code}
+              type="button"
+              onClick={() =>
+                onPatch({
+                  costCode: s.code,
+                  costLabel: s.label,
+                  kind: s.bucket === "indirect" ? "indirect" : "job",
+                  jobNumber: s.bucket === "indirect" ? "INDIRECT" : charge.jobNumber,
+                })
+              }
+              className="rounded-sm border border-line bg-paper-2 px-2 py-1 text-left text-xs hover:border-navy"
+            >
+              <span className="font-mono">{s.code}</span>
+              <span className="text-muted"> {s.label}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {charge.kind === "job" ? (
+        <div className="space-y-3">
+          <Field label="Job number">
+            <Input
+              value={charge.jobNumber}
+              placeholder="25125"
+              className="font-mono"
+              onChange={(e) => onPatch({ jobNumber: e.target.value.replace(/[^\d]/g, "") })}
+            />
+          </Field>
+          <Field label="Cost code">
+            <Input
+              value={query}
+              placeholder="Search ice, fuel, PPE, 61604…"
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </Field>
+          <CodeList
+            bucket="job"
+            query={query || charge.costCode}
+            selected={charge.costCode}
+            pool={codePool}
+            onSelect={(c) => {
+              onPatch({ costCode: c.code, costLabel: c.label });
+              setQuery("");
+            }}
+            onAddCode={addCustomCode}
+          />
+        </div>
+      ) : null}
+
+      {charge.kind === "indirect" ? (
+        <div className="space-y-3">
+          <Field label="Indirect code">
+            <Input
+              value={query}
+              placeholder="Search yard, software, AI, 500.025…"
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </Field>
+          <CodeList
+            bucket="indirect"
+            query={query || charge.costCode}
+            selected={charge.costCode}
+            pool={codePool}
+            onSelect={(c) => {
+              onPatch({
+                costCode: c.code,
+                costLabel: c.label,
+                jobNumber: "INDIRECT",
+              });
+              setQuery("");
+            }}
+            onAddCode={addCustomCode}
+          />
+        </div>
+      ) : null}
+
+      {charge.kind === "workOrder" ? (
+        <div className="space-y-3">
+          <Field label="Job number">
+            <Input
+              value={charge.jobNumber}
+              placeholder="Which job does this WO hit?"
+              className="font-mono"
+              onChange={(e) => onPatch({ jobNumber: e.target.value.replace(/[^\d]/g, "") })}
+            />
+          </Field>
+          <WorkOrderPicker
+            woNumber={charge.woNumber}
+            woType={charge.woType}
+            onChange={(wo, type) => {
+              const match = WORK_ORDER_CODES.find((c) => c.woNumber === wo && c.woType === type);
+              onPatch({
+                woNumber: wo,
+                woType: type,
+                costCode: match?.code ?? "",
+                costLabel: match?.label ?? woLabel(wo),
+                equipNumber: "",
+                equipSuffix: "",
+              });
+            }}
+          />
+        </div>
+      ) : null}
+
+      {charge.kind === "equipment" ? (
+        <EquipmentCoder
+          number={charge.equipNumber}
+          suffix={charge.equipSuffix}
+          labels={{ R: settings.suffixR, M: settings.suffixM, U: settings.suffixU }}
+          fleet={fleet}
+          onNumber={(v) => onPatch({ equipNumber: v, jobNumber: "", costCode: "", costLabel: "" })}
+          onSuffix={(v: EquipSuffix) =>
+            onPatch({ equipSuffix: v, jobNumber: "", costCode: "", costLabel: "" })
+          }
+          onSaveUnit={(unit) =>
+            updateSettings({ equipment: mergeEquipment(savedEquip, [unit]) })
+          }
+        />
+      ) : null}
+
+      <div>
+        <Label>Receipt</Label>
+        <div className="mt-1.5">
+          <ReceiptDrop
+            receipts={charge.receipts}
+            busy={busyRead}
+            onChange={(receipts) => onPatch({ receipts })}
+            onRead={onReadReceipt ? (r) => onReadReceipt(r.id) : undefined}
+            onError={onReceiptError}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block space-y-1.5">
+      <Label>{label}</Label>
+      {children}
+    </label>
+  );
+}
