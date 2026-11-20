@@ -1,4 +1,5 @@
 import type { CostCode } from "./cost-codes";
+import { uid } from "./utils";
 
 export type ChargeKind = "job" | "workOrder" | "equipment" | "indirect";
 
@@ -68,7 +69,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 export function emptyCharge(partial: Partial<Charge> = {}): Charge {
   return {
-    id: crypto.randomUUID(),
+    id: uid(),
     transDate: "",
     postDate: "",
     vendor: "",
