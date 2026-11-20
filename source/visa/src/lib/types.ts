@@ -57,8 +57,8 @@ export type AppSettings = {
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  employeeName: "Matthew Pitsenbarger",
-  last4: "5935",
+  employeeName: "",
+  last4: "",
   suffixR: "Repair",
   suffixM: "Maintenance",
   suffixU: "Use",

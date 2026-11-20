@@ -53,6 +53,7 @@ export function SettingsPage() {
           <Label>Employee name</Label>
           <Input
             value={settings.employeeName}
+            placeholder="Your name as it reads on the card"
             onChange={(e) => updateSettings({ employeeName: e.target.value })}
           />
         </label>
@@ -60,6 +61,7 @@ export function SettingsPage() {
           <Label>Card last 4</Label>
           <Input
             value={settings.last4}
+            placeholder="1234"
             maxLength={4}
             className="font-mono"
             onChange={(e) =>

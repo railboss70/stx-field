@@ -10,7 +10,7 @@ import { isCoded, packetFileName, reportTotal, type VisaReport } from "@/lib/typ
 import { formatMdY, formatMoney } from "@/lib/utils";
 
 // Shown on the home page. Bump with each release.
-const APP_VERSION = "22";
+const APP_VERSION = "23";
 
 export const Route = createFileRoute("/")({ component: Home });
 
