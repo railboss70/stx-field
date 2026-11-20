@@ -185,6 +185,12 @@
   <script src="./pdf.min.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
+      // A new version installs in the background. If it lands right after opening (before any
+      // real typing), reload once so the supervisor isn't left on the old version.
+      var openedAt = Date.now(), hadController = !!navigator.serviceWorker.controller, reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (hadController && !reloaded && Date.now() - openedAt < 10000) { reloaded = true; location.reload(); }
+      });
       navigator.serviceWorker.register("./sw.js");
     }
   </script>

@@ -4,7 +4,7 @@
 // service worker of its own) working with no signal.
 // Bump VERSION (and APP_VERSION in index.html) whenever anything changes, so phones
 // show the "new version is ready" banner.
-const VERSION = "stx-field-v1.3";
+const VERSION = "stx-field-v1.4";
 const PREFIX = "stx-field-v";
 const FILES = ["./", "index.html", "manifest.webmanifest", "assets/stx-logo.png",
   "assets/icon-180.png", "assets/icon-192.png", "assets/icon-512.png",

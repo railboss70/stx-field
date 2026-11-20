@@ -1,6 +1,6 @@
 // Saved copies are fetched fresh ({ cache: "reload" }); otherwise GitHub Pages' 10-minute browser cache
 // can lock an old file into the offline copy until the next version.
-const CACHE = "stx-field-daily-v3";
+const CACHE = "stx-field-daily-v4";
 const ASSETS = [
   "./",
   "./index.html",
