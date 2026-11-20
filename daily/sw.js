@@ -1,4 +1,6 @@
-const CACHE = "stx-field-daily-v2";
+// Saved copies are fetched fresh ({ cache: "reload" }); otherwise GitHub Pages' 10-minute browser cache
+// can lock an old file into the offline copy until the next version.
+const CACHE = "stx-field-daily-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -18,7 +20,7 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then((cache) => cache.addAll(ASSETS.map((a) => new Request(a, { cache: "reload" })))).then(() => self.skipWaiting())
   );
 });
 
